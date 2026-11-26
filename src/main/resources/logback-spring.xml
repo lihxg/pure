@@ -5,6 +5,7 @@
 	<springProperty scope="local" name="SERVER_PORT" source="server.port" defaultValue="8080"/>
 	<springProperty scope="local" name="LOG_HOME" source="logging.file.path" defaultValue="logs"/>
 
+	<!-- %traceId 是转换词，实际取的是 MDC key trace_id（ARMS 探针与应用共用同一个 key） -->
 	<conversionRule conversionWord="traceId" class="com.pure.pureroot.logging.TraceIdConverter"/>
 
 	<property name="LOG_PATH" value="${LOG_HOME}/${APP_NAME}/${SERVER_PORT}"/>

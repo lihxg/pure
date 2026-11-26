@@ -8,37 +8,50 @@ import ch.qos.logback.classic.pattern.ClassicConverter;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 
 /**
- * 日志中的 traceId：优先取 ARMS 探针在日志事件 MDC 注入的 trace_id，
- * 其次是 TraceIdAspect 写入线程 MDC 的 traceId，都没有时生成一个并写回线程 MDC。
+ * 日志中的 traceId：统一读取 MDC key {@code trace_id}——该值可能来自 ARMS 探针注入，
+ * 也可能来自 TraceIdAspect（无探针环境）。都没有时生成一个。
+ *
+ * <p>探针在场时兜底值写入 {@link #APP_TRACE_ID} 而不是 trace_id：探针发现日志事件已带
+ * trace_id 会跳过注入，写 trace_id 会让线上的 span_id / trace_flags 一起丢失。
  */
 public class TraceIdConverter extends ClassicConverter {
 
-	public static final String ARMS_TRACE_ID = "trace_id";
-	public static final String APP_TRACE_ID = "traceId";
+	/** 与 ARMS 探针一致的 MDC key，日志模板和 Logtail/SLS 都按它取值。 */
+	public static final String TRACE_ID = "trace_id";
+
+	/** 探针在场但当前线程没有 span 时的兜底 key，只用于日志输出，不参与探针识别。 */
+	public static final String APP_TRACE_ID = "appTraceId";
+
+	private final boolean agentPresent;
+
+	public TraceIdConverter() {
+		this(ArmsAgent.isPresent());
+	}
+
+	TraceIdConverter(boolean agentPresent) {
+		this.agentPresent = agentPresent;
+	}
 
 	@Override
 	public String convert(ILoggingEvent event) {
 		Map<String, String> mdc = event.getMDCPropertyMap();
 		if (mdc != null) {
-			String armsTraceId = mdc.get(ARMS_TRACE_ID);
-			if (armsTraceId != null && !armsTraceId.isEmpty()) {
-				return armsTraceId;
-			}
-			String appTraceId = mdc.get(APP_TRACE_ID);
-			if (appTraceId != null && !appTraceId.isEmpty()) {
-				return appTraceId;
+			String traceId = mdc.get(TRACE_ID);
+			if (traceId != null && !traceId.isEmpty()) {
+				return traceId;
 			}
 		}
-		return registerGeneratedTraceId();
+		return registerFallbackTraceId();
 	}
 
-	private String registerGeneratedTraceId() {
-		String existing = MDC.get(APP_TRACE_ID);
+	private String registerFallbackTraceId() {
+		String key = agentPresent ? APP_TRACE_ID : TRACE_ID;
+		String existing = MDC.get(key);
 		if (existing != null && !existing.isEmpty()) {
 			return existing;
 		}
 		String generated = TraceIds.generate();
-		MDC.put(APP_TRACE_ID, generated);
+		MDC.put(key, generated);
 		return generated;
 	}
 }

@@ -26,6 +26,8 @@ class HelloControllerTest {
 
     private static final Path LOG_DIR = Path.of("target/test-logs/pure-root/8080");
 
+    private static final String TRACE_ID_PATTERN = "\\[[0-9a-f]{32}\\] hi~$";
+
     @Autowired
     private MockMvc mockMvc;
 
@@ -38,36 +40,44 @@ class HelloControllerTest {
     }
 
     @Test
-    @DisplayName("info log line uses the pattern with trace id")
+    @DisplayName("info log line uses the pattern with a generated trace id")
     void hello_writesInfoLogWithPattern() throws Exception {
-        mockMvc.perform(get("/hello").header("X-Trace-Id", "pattern-check"))
+        mockMvc.perform(get("/hello"))
                 .andExpect(status().isOk());
 
         String line = lastLineContaining(readLogLines("info/info.log"), "hi~");
 
         assertThat(line).contains("[INFO]");
-        assertThat(line).contains("[pattern-check] hi~");
         assertThat(line).contains("[" + HelloController.class.getName() + ":");
+        assertThat(line).matches(".*" + TRACE_ID_PATTERN);
     }
 
     @Test
-    @DisplayName("trace id from X-Trace-Id header is propagated to the log")
-    void hello_usesTraceIdFromHeader() throws Exception {
-        mockMvc.perform(get("/hello").header("X-Trace-Id", "trace-from-upstream"))
-                .andExpect(status().isOk());
+    @DisplayName("each request gets its own trace id")
+    void hello_eachRequest_generatesNewTraceId() throws Exception {
+        mockMvc.perform(get("/hello"));
+        String first = traceIdOf(lastLineContaining(readLogLines("info/info.log"), "hi~"));
 
-        assertThat(lastLineContaining(readLogLines("info/info.log"), "hi~"))
-                .contains("[trace-from-upstream] hi~");
+        mockMvc.perform(get("/hello"));
+        String second = traceIdOf(lastLineContaining(readLogLines("info/info.log"), "hi~"));
+
+        assertThat(second).isNotEqualTo(first);
     }
 
     @Test
     @DisplayName("INFO traffic is not written to warn or error files")
     void infoTraffic_isNotWrittenToWarnOrErrorFiles() throws Exception {
-        mockMvc.perform(get("/hello").header("X-Trace-Id", "level-check"))
+        mockMvc.perform(get("/hello"))
                 .andExpect(status().isOk());
 
-        assertThat(readLogLines("warn/warn.log")).noneMatch(line -> line.contains("level-check"));
-        assertThat(readLogLines("error/error.log")).noneMatch(line -> line.contains("level-check"));
+        assertThat(readLogLines("warn/warn.log")).noneMatch(line -> line.contains("hi~"));
+        assertThat(readLogLines("error/error.log")).noneMatch(line -> line.contains("hi~"));
+    }
+
+    private String traceIdOf(String line) {
+        int end = line.lastIndexOf("] hi~");
+        int start = line.lastIndexOf('[', end - 1);
+        return line.substring(start + 1, end);
     }
 
     private List<String> readLogLines(String relativePath) throws IOException {
