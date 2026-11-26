@@ -1,6 +1,5 @@
 package com.pure.pureroot.aspect;
 
-import java.util.UUID;
 import java.util.regex.Pattern;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -13,8 +12,10 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
+import com.pure.pureroot.logging.TraceIds;
+
 /**
- * 为每个 HTTP 请求生成 traceId 并放入 MDC，由日志模板的 %X{traceId} 输出。
+ * 为每个 HTTP 请求生成 traceId 并放入 MDC，由日志模板的 %traceId 输出。
  * 上游已传 X-Trace-Id 时沿用，便于跨服务串联链路。
  */
 @Aspect
@@ -63,6 +64,6 @@ public class TraceIdAspect {
 	}
 
 	private String newTraceId() {
-		return UUID.randomUUID().toString().replace("-", "");
+		return TraceIds.generate();
 	}
 }

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.pure.pureroot.mapper.AreaMapper">
+
+    <resultMap id="BaseResultMap" type="com.pure.pureroot.domain.Area">
+            <id property="id" column="id" />
+            <result property="value" column="value" />
+            <result property="label" column="label" />
+            <result property="code" column="code" />
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id,value,label,code
+    </sql>
+</mapper>
