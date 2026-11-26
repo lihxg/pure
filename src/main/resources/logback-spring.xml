@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration status="error">
+
+	<springProperty scope="local" name="APP_NAME" source="spring.application.name" defaultValue="pure-root"/>
+	<springProperty scope="local" name="SERVER_PORT" source="server.port" defaultValue="8080"/>
+	<springProperty scope="local" name="LOG_HOME" source="logging.file.path" defaultValue="logs"/>
+
+	<conversionRule conversionWord="traceId" class="com.pure.pureroot.logging.TraceIdConverter"/>
+
+	<property name="LOG_PATH" value="${LOG_HOME}/${APP_NAME}/${SERVER_PORT}"/>
+	<property name="LOG_PATTERN" value="[%d][%t][%p][%c:%L] [%traceId] %m%n"/>
+	<property name="FILE_SIZE" value="100MB"/>
+	<property name="FILE_COUNT" value="50"/>
+
+	<appender name="Console" class="ch.qos.logback.core.ConsoleAppender">
+		<encoder>
+			<pattern>${LOG_PATTERN}</pattern>
+		</encoder>
+	</appender>
+
+	<appender name="RollingFileInfo" class="ch.qos.logback.core.rolling.RollingFileAppender">
+		<file>${LOG_PATH}/info/info.log</file>
+		<rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+			<fileNamePattern>${LOG_PATH}/info/info-%d{yyyy-MM-dd}-%i.log</fileNamePattern>
+			<maxFileSize>${FILE_SIZE}</maxFileSize>
+			<maxHistory>${FILE_COUNT}</maxHistory>
+		</rollingPolicy>
+		<filter class="ch.qos.logback.classic.filter.LevelFilter">
+			<level>INFO</level>
+			<onMatch>ACCEPT</onMatch>
+			<onMismatch>DENY</onMismatch>
+		</filter>
+		<encoder>
+			<pattern>${LOG_PATTERN}</pattern>
+		</encoder>
+	</appender>
+
+	<appender name="RollingFileWarn" class="ch.qos.logback.core.rolling.RollingFileAppender">
+		<file>${LOG_PATH}/warn/warn.log</file>
+		<rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+			<fileNamePattern>${LOG_PATH}/warn/warn-%d{yyyy-MM-dd}-%i.log</fileNamePattern>
+			<maxFileSize>${FILE_SIZE}</maxFileSize>
+			<maxHistory>${FILE_COUNT}</maxHistory>
+		</rollingPolicy>
+		<filter class="ch.qos.logback.classic.filter.LevelFilter">
+			<level>WARN</level>
+			<onMatch>ACCEPT</onMatch>
+			<onMismatch>DENY</onMismatch>
+		</filter>
+		<encoder>
+			<pattern>${LOG_PATTERN}</pattern>
+		</encoder>
+	</appender>
+
+	<appender name="RollingFileError" class="ch.qos.logback.core.rolling.RollingFileAppender">
+		<file>${LOG_PATH}/error/error.log</file>
+		<rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+			<fileNamePattern>${LOG_PATH}/error/error-%d{yyyy-MM-dd}-%i.log</fileNamePattern>
+			<maxFileSize>${FILE_SIZE}</maxFileSize>
+			<maxHistory>${FILE_COUNT}</maxHistory>
+		</rollingPolicy>
+		<filter class="ch.qos.logback.classic.filter.LevelFilter">
+			<level>ERROR</level>
+			<onMatch>ACCEPT</onMatch>
+			<onMismatch>DENY</onMismatch>
+		</filter>
+		<encoder>
+			<pattern>${LOG_PATTERN}</pattern>
+		</encoder>
+	</appender>
+
+	<root level="info">
+		<appender-ref ref="Console"/>
+		<appender-ref ref="RollingFileInfo"/>
+		<appender-ref ref="RollingFileWarn"/>
+		<appender-ref ref="RollingFileError"/>
+	</root>
+</configuration>
